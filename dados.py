@@ -86,26 +86,40 @@ print(df["Data_Transacao"].head(100))
 def convertevalor(linha):
     moeda = linha["Moeda"]
     valor = linha["Valor_Transacao"]
-    
+    if pd.isna(valor):
+        return None
     if moeda == "USD":
-        return valor * 5.00
+        return round(valor * 5.00, 2)
     elif moeda == "EUR":
-        return valor * 5.50
+        return round(valor * 5.50, 2)
     elif moeda == "GBP":
-        return valor * 6.30
+        return round(valor * 6.30, 2)
     else:
-        return valor
+        return round(valor, 2)
+
+    
+def normaliza_valor(v):
+    if pd.isna(v) or str(v).strip() in ('', 'nan'):
+        return None
+    v = str(v).strip()
+    tem_virgula = ',' in v
+    tem_ponto   = '.' in v
+    if tem_virgula and tem_ponto:
+        v = v.replace('.', '').replace(',', '.')
+    elif tem_virgula:
+        v = v.replace(',', '.')
+    try:
+        return float(v)
+    except ValueError:
+        return None
     
 #tratamento do codigo tirando os R$ USD EUR GPB e utilização do astype(str) para transforma tudo da coluna em string 
-df["Valor_Transacao"] = df["Valor_Transacao"].str.strip()
-df["Valor_Transacao"] = df["Valor_Transacao"].astype(str).str.replace('R$', '', regex=False)
-df["Valor_Transacao"] = df["Valor_Transacao"].str.replace(r'[GPB]', '', regex=True)
-df["Valor_Transacao"] = df["Valor_Transacao"].str.replace(r'[EUR]', '', regex=True)
-df["Valor_Transacao"] = df["Valor_Transacao"].str.replace(r'[USD]', '', regex=True)
-
+df["Moeda"] = df["Moeda"].astype(str).str.strip()
+df["Valor_Transacao"] = df["Valor_Transacao"].astype(str).str.strip()
+df["Valor_Transacao"] = df["Valor_Transacao"].str.replace(r'USD|EUR|GBP|R\$', '', regex=True).str.strip()
 #transforma em float tirando a , por .
-df["Valor_Transacao"] = df["Valor_Transacao"].str.replace(r'[.]', '', regex=True)
-df["Valor_Transacao"] = df["Valor_Transacao"].str.replace(r'[,]', '.', regex=True)
+
+df["Valor_Transacao"] = df["Valor_Transacao"].apply(normaliza_valor)
 
 df["Valor_Transacao"] = pd.to_numeric(df["Valor_Transacao"], errors='coerce')
 
@@ -114,10 +128,8 @@ df["Valor_Transacao"] = df.apply(convertevalor, axis=1)
 df.loc[df["Valor_Transacao"] <= 0 , "Valor_Transacao"] = None
 df.loc[df["Valor_Transacao"] > 1000000, "Valor_Transacao"] = None
 
-
-
 mediana = df["Valor_Transacao"].median()
-df["Valor_Transacao"] = df["Valor_Transacao"].fillna(mediana)
+df["Valor_Transacao"] = df["Valor_Transacao"].fillna(mediana).round(2)
 df["Valor_Transacao"] = df["Valor_Transacao"].round(2)
 
 df["Moeda"] = "BRL"
@@ -145,7 +157,8 @@ mapa_tipo = {
     'retirada': 'Saque',
     'boleto' : 'Pagamento',
     'ted' : 'Transferência',
-    'doc' :  'Transferência'
+    'doc' :  'Transferência',
+    'resgate': 'Saque',
 }
 
 df['Tipo_Transacao'] = (
@@ -182,6 +195,7 @@ df['Status_Transacao'] = (
     .str.strip()
     .str.lower()
     .map(mapa_status)
+    .fillna(df['Status_Transacao'].mode()[0])
 )
 print(df['Status_Transacao'].unique())
 
@@ -217,15 +231,20 @@ print(media)
 print(df["Taxa_Servico"].head(31))
 
 #topico 12
-for i in ["Taxa_Servico", "Valor_Transacao", "Valor_Final"]:
-    df[i].str.replace(',', '.', regex=False)
-    df[i] = df[i].astype(str).str.strip()
-    df[i] = pd.to_numeric(df[i], errors="coerce")
+
+df["Valor_Transacao"] = pd.to_numeric(df["Valor_Transacao"], errors="coerce").fillna(0)
+df["Taxa_Servico"] = pd.to_numeric(df["Taxa_Servico"], errors="coerce").fillna(0)
+df["Valor_Final"] = pd.to_numeric(df["Valor_Final"], errors="coerce").fillna(0)
 
 def verificaFinal(linha):
     taxa = linha["Taxa_Servico"]
     valorFinal = linha["Valor_Final"]
     deposito = linha["Valor_Transacao"]
+
+    valor_atual = round(linha["Valor_Final"], 2)
+
+    esperado = round(deposito + taxa, 2)
+
     if pd.notna(taxa):
         taxa = taxa
     else:
@@ -235,9 +254,9 @@ def verificaFinal(linha):
     else:
         deposito = 0
 
-    if(valorFinal != (deposito + taxa) or valorFinal < deposito):
-        return deposito + taxa
-    return valorFinal
+    if(valorFinal < deposito or valorFinal != (deposito + taxa)):
+        return esperado
+    return valor_atual  
 
 df["Valor_Final"] = df.apply(verificaFinal, axis=1)
 
