@@ -47,6 +47,11 @@ print("===============================")
 
 #topico 4.
 #padronização do CPF
+
+print("===============================")
+print("Tratamento de CPF")
+print("===============================")
+
 df["CPF_Cliente"] = df["CPF_Cliente"].str.strip()
 df["CPF_Cliente"] = df["CPF_Cliente"].str.replace(r'[.-]', '', regex=True)
 #tirar os . e - para garantir que todos os cpf vao se comportar igual
@@ -62,8 +67,20 @@ df.loc[numerosseparados,"CPF_Cliente"] = (
     df.loc[numerosseparados,"CPF_Cliente"].str[:3] + "." + df.loc[numerosseparados,"CPF_Cliente"].str[3:6] + "." + df.loc[numerosseparados,"CPF_Cliente"].str[6:9] +"-"+ df.loc[numerosseparados,"CPF_Cliente"].str[9:]
 )
 
+#topico 5
+#data de transação
+
+print("===============================")
+print("Tratamento de data no modelo YYYY-MM-DD")
+print("===============================")
+
+#utilização das duas funções de tratamento de datas mais o "mixed" para identificar caso haja um mes escrito no meio das datas
+df["Data_Transacao"] = pd.to_datetime(df["Data_Transacao"], format="mixed")
+df["Data_Transacao"] = df["Data_Transacao"].dt.strftime("%Y-%m-%d")
+
+
+print(df["Data_Transacao"].head(100))
+
 
 #salvamento do tratamento de dados
 #df.to_csv("basededadoslimpa.csv",index=False)
-print(df["CPF_Cliente"].head())
-
