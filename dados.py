@@ -112,6 +112,8 @@ df["Valor_Transacao"] = pd.to_numeric(df["Valor_Transacao"], errors='coerce')
 df["Valor_Transacao"] = df.apply(convertevalor, axis=1)
 
 df.loc[df["Valor_Transacao"] <= 0 , "Valor_Transacao"] = None
+df.loc[df["Valor_Transacao"] > 1000000, "Valor_Transacao"] = None
+
 
 
 mediana = df["Valor_Transacao"].median()
@@ -122,8 +124,8 @@ df["Moeda"] = "BRL"
 
 
 print(mediana)
-print(df["Moeda"].head(100))
-print(df["Valor_Transacao"].head(100))
+print(df["Moeda"].head(25))
+print(df["Valor_Transacao"].head(25))
 
 #topico 7
 mapa_tipo = {
@@ -159,8 +161,11 @@ print(df["Tipo_Transacao"].head())
 #topico 8
 mapa_status = {
     "aprovada" : "Aprovada",
+    "Aprovado" : "Aprovada",
     "autorizada" : "Aprovada",
     "aprov." : "Aprovada",
+    "Bloqueada" : "Recusada",
+    "recusada" : "Recusada",
     "negada" : "Recusada",
     "boqueada" : "Recusada",
     "recus." : "Recusada",
@@ -170,13 +175,73 @@ mapa_status = {
     "pend." : "Pendente"
 }
 
+
+
 df['Status_Transacao'] = (
     df["Status_Transacao"]
     .str.strip()
     .str.lower()
     .map(mapa_status)
 )
+print(df['Status_Transacao'].unique())
 
 print(df["Status_Transacao"].head())
-#salvamento do tratamento de dados
-#df.to_csv("basededadoslimpa.csv",index=False)
+
+# #topico 9
+
+df["Nome_Cliente"] = df["Nome_Cliente"].str.replace(r"_"," ",regex=False)
+df["Nome_Cliente"] = df["Nome_Cliente"].str.split().str.join(" ")
+df["Nome_Cliente"] = df["Nome_Cliente"].str.title()
+df["Nome_Cliente"] = df["Nome_Cliente"].str.replace(r'\b(\w+)\s+\1\b', r'\1', regex=True)
+
+print(df["Nome_Cliente"].head(355))
+
+#topico 10 
+df["Num_Parcelas"] = df["Num_Parcelas"].str.replace(r"parcelas","",regex=False)
+df["Num_Parcelas"] = df["Num_Parcelas"].str.replace(r"à vista","1",regex=False)
+df["Num_Parcelas"] = df["Num_Parcelas"].str.replace(r"X","",regex=False)
+df["Num_Parcelas"] = df["Num_Parcelas"].str.replace(r"x","",regex=False)
+df["Num_Parcelas"] = df["Num_Parcelas"].str.replace(r".0","",regex=False)
+df["Num_Parcelas"] = df["Num_Parcelas"].str.strip()
+df["Num_Parcelas"] = pd.to_numeric(df["Num_Parcelas"], errors='coerce')
+
+print(df["Num_Parcelas"].head())
+
+#topico 11
+df["Taxa_Servico"] = pd.to_numeric(df["Taxa_Servico"] , errors= "coerce")
+df["Taxa_Servico"] = abs(df["Taxa_Servico"])
+media =  df["Taxa_Servico"].mean().round(2)
+df["Taxa_Servico"] = df["Taxa_Servico"].fillna(media)
+
+print(media)
+print(df["Taxa_Servico"].head(31))
+
+#topico 12
+for i in ["Taxa_Servico", "Valor_Transacao", "Valor_Final"]:
+    df[i].str.replace(',', '.', regex=False)
+    df[i] = df[i].astype(str).str.strip()
+    df[i] = pd.to_numeric(df[i], errors="coerce")
+
+def verificaFinal(linha):
+    taxa = linha["Taxa_Servico"]
+    valorFinal = linha["Valor_Final"]
+    deposito = linha["Valor_Transacao"]
+    if pd.notna(taxa):
+        taxa = taxa
+    else:
+        taxa = 0
+    if pd.notna(deposito):
+        deposito = deposito
+    else:
+        deposito = 0
+
+    if(valorFinal != (deposito + taxa) or valorFinal < deposito):
+        return deposito + taxa
+    return valorFinal
+
+df["Valor_Final"] = df.apply(verificaFinal, axis=1)
+
+print(df["Valor_Final"].head())
+
+# salvamento do tratamento de dados
+df.to_csv("basededadoslimpa.csv",index=False)
