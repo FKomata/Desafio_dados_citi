@@ -138,6 +138,7 @@ mapa_tipo = {
     'pixe': 'PIX',
     'depósito': 'Depósito',
     'deposito': 'Depósito',
+    'dep.' : "Depósito",
     'saque': 'Saque',
     'retirada': 'Saque',
     'boleto' : 'Pagamento',
@@ -152,7 +153,30 @@ df['Tipo_Transacao'] = (
     .map(mapa_tipo)
     .fillna(df['Tipo_Transacao'].mode()[0])
 )
-
+print(df["Tipo_Transacao"].unique())
 print(df["Tipo_Transacao"].head())
+
+#topico 8
+mapa_status = {
+    "aprovada" : "Aprovada",
+    "autorizada" : "Aprovada",
+    "aprov." : "Aprovada",
+    "negada" : "Recusada",
+    "boqueada" : "Recusada",
+    "recus." : "Recusada",
+    "pendente" : "Pendente",
+    "em processamento" : "Pendente",
+    "aguardando" : "Pendente",
+    "pend." : "Pendente"
+}
+
+df['Status_Transacao'] = (
+    df["Status_Transacao"]
+    .str.strip()
+    .str.lower()
+    .map(mapa_status)
+)
+
+print(df["Status_Transacao"].head())
 #salvamento do tratamento de dados
 #df.to_csv("basededadoslimpa.csv",index=False)
