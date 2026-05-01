@@ -62,7 +62,7 @@ df["CPF_Cliente"] = df["CPF_Cliente"].str.title()
 #filtro para o .loc saber o tamanho da string que ele deve mexer
 numerosseparados = (df['CPF_Cliente'].str.len() == 11)
 
-#mudanças que indicam onde dee ser otado o . e a -
+#mudanças que indicam onde deve ser otado o . e a -
 df.loc[numerosseparados,"CPF_Cliente"] = (
     df.loc[numerosseparados,"CPF_Cliente"].str[:3] + "." + df.loc[numerosseparados,"CPF_Cliente"].str[3:6] + "." + df.loc[numerosseparados,"CPF_Cliente"].str[6:9] +"-"+ df.loc[numerosseparados,"CPF_Cliente"].str[9:]
 )
@@ -118,7 +118,6 @@ df["Moeda"] = df["Moeda"].astype(str).str.strip()
 df["Valor_Transacao"] = df["Valor_Transacao"].astype(str).str.strip()
 df["Valor_Transacao"] = df["Valor_Transacao"].str.replace(r'USD|EUR|GBP|R\$', '', regex=True).str.strip()
 #transforma em float tirando a , por .
-
 df["Valor_Transacao"] = df["Valor_Transacao"].apply(normaliza_valor)
 
 df["Valor_Transacao"] = pd.to_numeric(df["Valor_Transacao"], errors='coerce')
@@ -134,10 +133,8 @@ df["Valor_Transacao"] = df["Valor_Transacao"].round(2)
 
 df["Moeda"] = "BRL"
 
-
-print(mediana)
-print(df["Moeda"].head(25))
-print(df["Valor_Transacao"].head(25))
+print("fill na =================================================")
+print(df[df["Valor_Transacao"].isna()])
 
 #topico 7
 mapa_tipo = {
